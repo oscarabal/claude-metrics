@@ -160,7 +160,8 @@ def build(ix, since, until, label, projects=None, anon=False, now=None, data=Non
     started = time.time()
     sessions, costs, telemetry = data or snapshot(ix)
     keep = (lambda p: p in projects) if projects else (lambda p: True)
-    first = min((m[0] for s in sessions for m in s["msgs"] if m[0]), default=since)
+    # first activity of the chosen projects, so a project that started later has no empty previous period
+    first = min((m[0] for s in sessions if keep(s["project"]) for m in s["msgs"] if m[0]), default=since)
     since = max(since, first - first % 86400000)
     span = until - since
     cur = Period(sessions, costs, since, until, keep)
