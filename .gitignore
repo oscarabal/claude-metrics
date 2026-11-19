@@ -1,0 +1,13 @@
+# Documentación interna: no se publica, salvo la guía y la infraestructura
+Docs/*
+!Docs/Guía de los dashboards de Claude Code.md
+!Docs/Infraestructura de métricas de Claude Code.md
+
+# Secretos y accesos directos locales
+.env
+*.lnk
+
+# Python y ficheros de diagnóstico locales
+__pycache__/
+*.pyc
+probe.txt

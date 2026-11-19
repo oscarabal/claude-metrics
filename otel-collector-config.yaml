@@ -1,0 +1,35 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  # Expone las métricas para que Prometheus las recoja
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    metric_expiration: 24h   # por defecto 5m: sin esto las series desaparecen de :8889 a los 5 min de cerrar Claude Code
+    resource_to_telemetry_conversion:
+      enabled: true        # convierte team, department, user... en etiquetas
+  # Útil para depurar: muestra en el log del collector lo que llega
+  debug:
+    verbosity: basic
+  # Guarda los eventos (api_request, tool_result, skill_activated...) en Loki
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/loki, debug]

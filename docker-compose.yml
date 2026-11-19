@@ -1,0 +1,85 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"   # OTLP gRPC (Claude Code envía aquí)
+      - "127.0.0.1:4318:4318"   # OTLP HTTP
+      - "8889:8889"   # métricas expuestas para Prometheus
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.4.2
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=90d"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - otel-collector
+      - session-map
+    restart: unless-stopped
+
+  session-map:
+    image: python:3.13-alpine
+    command: ["python", "/app/map.py"]
+    volumes:
+      - ./session-map:/app:ro
+      - ${USERPROFILE}/.claude/projects:/projects:ro   # transcripts: carpeta = proyecto, fichero = session_id
+      # Informe de mejoras: comandos y skills propios (solo lectura; nunca ~/.claude entero ni settings.json, que pueden llevar claves)
+      - ${USERPROFILE}/.claude/commands:/claude-config/commands:ro
+      - ${USERPROFILE}/.claude/skills:/claude-config/skills:ro
+      # Historial del informe: coste de cada petición y agregados diarios de Loki, para no depender de sus 30 días
+      - coach-data:/state
+    environment:
+      - CONTEXT_LIMIT_DEFAULT=${CONTEXT_LIMIT_DEFAULT:-200000}
+      - CONTEXT_LIMITS=${CONTEXT_LIMITS:-}
+      - CONTEXT_SESSIONS=${CONTEXT_SESSIONS:-30}
+      - PROJECT_ROOTS=${PROJECT_ROOTS:-}
+      - COACH_DB=/state/coach.db
+    ports:
+      # Páginas de lista y detalle de sesión, que se abren desde el dashboard
+      - "127.0.0.1:9100:9100"
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?copia .env.example a .env y define una contraseña}
+    volumes:
+      - ./grafana-datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./Grafana:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+volumes:
+  coach-data:
+  prometheus-data:
+  grafana-data:
+  loki-data:
