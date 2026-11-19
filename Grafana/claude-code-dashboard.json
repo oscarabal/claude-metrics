@@ -1850,7 +1850,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9100/report.md?from=${__from}&to=${__to}&project=${project:csv}"
+              "url": "http://localhost:9100/report?from=${__from}&to=${__to}&project=${project:csv}"
             }
           ]
         },
@@ -1919,7 +1919,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9100/report.md?from=${__from}&to=${__to}&project=${project:csv}"
+              "url": "http://localhost:9100/report?from=${__from}&to=${__to}&project=${project:csv}"
             }
           ]
         },
@@ -2109,7 +2109,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9100/report.md?from=${__from}&to=${__to}&project=${project:csv}"
+              "url": "http://localhost:9100/report?from=${__from}&to=${__to}&project=${project:csv}"
             }
           ]
         },
@@ -2301,7 +2301,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9100/report.md?from=${__from}&to=${__to}&project=${project:csv}"
+              "url": "http://localhost:9100/report?from=${__from}&to=${__to}&project=${project:csv}"
             }
           ]
         },
@@ -2981,12 +2981,12 @@
   "description": "Coste, tokens, sesiones, skills y prompts de Claude Code en un solo dashboard. Sigue el selector de tiempo y el de proyecto; el coste es una estimación del cliente, no una factura.",
   "links": [
     {
-      "title": "Informe de mejoras (.md)",
+      "title": "Informe de mejoras",
       "type": "link",
       "icon": "doc",
       "targetBlank": true,
-      "tooltip": "Descarga un informe del rango y los proyectos elegidos, para compartirlo con una IA",
-      "url": "http://localhost:9100/report.md?from=${__from}&to=${__to}&project=${project:csv}",
+      "tooltip": "Abre en una pestaña nueva el informe del rango y los proyectos elegidos; desde ahí se descarga en .md para compartirlo con una IA",
+      "url": "http://localhost:9100/report?from=${__from}&to=${__to}&project=${project:csv}",
       "asDropdown": false,
       "includeVars": false,
       "keepTime": false,

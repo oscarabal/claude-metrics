@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
 import index
 import pages
+import report_page
 from coach import metrics as coach_metrics, render as coach_render, report as coach_report
 
 PORT = int(os.environ.get("PORT", "9100"))
@@ -332,6 +333,8 @@ class Handler(BaseHTTPRequestHandler):
                 data = detail(sid) if re.fullmatch(r"[A-Za-z0-9\-_]+", sid) else None
                 page = pages.render_detail(data, DASHBOARD_URL) if data else pages.not_found(DASHBOARD_URL)
                 return self._send(200 if data else 404, page, "text/html; charset=utf-8")
+            if parsed.path.rstrip("/") == "/report":
+                return self._report_view(parsed)
             if parsed.path.rstrip("/") in ("/report.md", "/report.json"):
                 return self._report(parsed)
             if parsed.path.startswith("/coach/"):
@@ -361,6 +364,22 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _report_view(self, parsed):
+        """The improvement report as a web page, opened from the dashboard, with a button to download its Markdown."""
+        query = urllib.parse.parse_qs(parsed.query)
+        anon = query.get("anon", ["0"])[0] == "1"
+        other = {k: v for k, v in query.items() if k != "anon"}
+        if not anon:
+            other["anon"] = ["1"]
+        try:
+            md = coach_render.render(report_for(query))
+        except Exception as ex:
+            return self._send(500, report_page.error("Error: %s" % ex, DASHBOARD_URL), "text/html; charset=utf-8")
+        filename = "claude-code-informe-%s.md" % time.strftime("%Y-%m-%d")
+        download = "/report.md" + ("?" + parsed.query if parsed.query else "")
+        page = report_page.render(md, filename, DASHBOARD_URL, download, anon, "?" + urllib.parse.urlencode(other, doseq=True))
+        return self._send(200, page, "text/html; charset=utf-8")
 
     def log_message(self, *a):
         pass

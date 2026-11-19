@@ -172,8 +172,8 @@ Las reglas son las mismas que las del módulo de OpenCode, con los mismos identi
 
 Tres formas de obtenerlo, con el mismo contenido:
 
-- **Grafana:** el enlace **Informe de mejoras (.md)**, arriba a la derecha, con el rango y los proyectos elegidos.
-- **Navegador:** `http://localhost:9100/report.md?window=30` (`window` en días, o `from` y `to` en tiempo Unix), con `project` y `anon=1` para ocultar los nombres de proyecto. `/report.json` devuelve lo mismo en JSON, con el mismo formato que el informe de OpenCode.
+- **Grafana:** el enlace **Informe de mejoras**, arriba a la derecha, y las cifras de la fila «Mejoras» lo abren en una pestaña nueva (`/report`) con el rango y los proyectos elegidos. Esa página muestra el informe, enlaza cada sesión de ejemplo con su detalle y tiene un botón **Descargar informe (.md)**, otro para copiar el Markdown y otro para ocultar los nombres de proyecto.
+- **Navegador:** `http://localhost:9100/report?window=30` lo muestra como página y `http://localhost:9100/report.md?window=30` lo descarga (`window` en días, o `from` y `to` en tiempo Unix), con `project` y `anon=1` para ocultar los nombres de proyecto. `/report.json` devuelve lo mismo en JSON, con el mismo formato que el informe de OpenCode.
 - **Consola:** `docker compose exec session-map python /app/coach/cli.py report --window 30 > informe.md`.
 
 **De dónde sale.** De las conversaciones (cada llamada a herramienta con su resultado, el turno, interrupciones y rechazos; el texto de un error se lee para clasificarlo y se descarta), de los eventos de Loki (*effort*, origen de cada petición, bytes devueltos por herramienta, decisiones de permisos) y de `~/.claude/commands` y `~/.claude/skills`, montadas en solo lectura.
@@ -277,6 +277,7 @@ grafana-dashboards.yaml       proveedor de dashboards provisionados
 session-map/map.py            exportador y páginas de sesión
 session-map/index.py          índice de conversaciones y búsqueda de costes
 session-map/pages.py          HTML de las páginas de sesión
+session-map/report_page.py    página HTML del informe de mejoras, con el botón de descarga
 session-map/coach/            informe de mejoras: reglas, almacén, Loki, Markdown, métricas y consola
 Grafana/                      dashboard provisionado
 Iniciar-metricas.bat          lanzador para Windows

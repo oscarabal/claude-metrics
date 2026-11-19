@@ -150,6 +150,7 @@ Se publican métricas de contexto de las 30 sesiones más recientes (`claude_con
 | `coach/report.py` | `build()`: periodo y periodo anterior, tablas y 16 reglas (D1-D10 compartidas con OpenCode, C1-C6 propias) |
 | `coach/render.py`, `coach/cli.py` | Markdown con instrucciones para la IA, JSON y línea de comandos |
 | `coach/metrics.py` | Hilo de fondo: guarda costes, consulta Loki cada 10 min, series cada 2 min y hallazgos cada 10 min; el scrape solo copia la caché |
+| `report_page.py` (`/report`) | El informe como página HTML, que abren los enlaces del dashboard en una pestaña nueva, con botones para descargar el .md (el mismo texto mostrado), copiarlo y anonimizarlo; convierte el Markdown sin librerías |
 | `map.py` (`/report.md`, `/report.json`, `/coach/…`) | Sirve el informe con el rango (`from`, `to` en ms o s, o `window`) y los proyectos (`project`) pedidos. `/coach/summary`, `/coach/findings`, `/coach/rules` y `/coach/tool_bytes` devuelven partes del mismo informe como listas JSON para los paneles de la fila «Mejoras». Un informe ya calculado para el mismo rango (al minuto) y proyectos se reutiliza durante dos minutos |
 
 **Cambios en el índice.** `index.py` guarda ahora, por cada llamada a herramienta, la hora, el modelo, el turno, un hash corto de sus argumentos (para detectar repeticiones) y, si falló, la clase del error; además, los turnos (cada mensaje del usuario que no es un resultado) y las interrupciones. El texto de los errores se lee para clasificarlo y se descarta.

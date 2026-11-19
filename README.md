@@ -153,8 +153,8 @@ The rules are the same as in the OpenCode module, with the same ids (D1 tool err
 
 Three ways to get it, with the same content:
 
-- **Grafana:** the **Informe de mejoras (.md)** link, at the top right, for the selected range and projects.
-- **Browser:** `http://localhost:9100/report.md?window=30` (`window` in days, or `from` and `to` as Unix time), with `project` and `anon=1` to hide project names. `/report.json` returns the same as JSON, in the same format as the OpenCode report.
+- **Grafana:** the **Informe de mejoras** link, at the top right, and the figures of the «Mejoras» row open it in a new tab (`/report`) for the selected range and projects. That page shows the report, links each example session to its detail page and has a **Descargar informe (.md)** button, plus another to copy the Markdown and one to hide project names.
+- **Browser:** `http://localhost:9100/report?window=30` shows it as a page and `http://localhost:9100/report.md?window=30` downloads it (`window` in days, or `from` and `to` as Unix time), with `project` and `anon=1` to hide project names. `/report.json` returns the same as JSON, in the same format as the OpenCode report.
 - **Command line:** `docker compose exec session-map python /app/coach/cli.py report --window 30 > report.md`.
 
 **Sources.** The conversation files (each tool call with its result, the turn, interruptions and rejections; an error's text is read to classify it and then discarded), Loki's events (*effort*, origin of each request, bytes returned by each tool, permission decisions) and `~/.claude/commands` and `~/.claude/skills`, mounted read-only.
@@ -258,6 +258,7 @@ grafana-dashboards.yaml       provisioned dashboards provider
 session-map/map.py            exporter and session pages
 session-map/index.py          conversation index and cost lookup
 session-map/pages.py          HTML of the session pages
+session-map/report_page.py    HTML page of the improvement report, with the download button
 session-map/coach/            improvement report: rules, store, Loki, Markdown, metrics and command line
 Grafana/                      provisioned dashboard
 Iniciar-metricas.bat          Windows launcher

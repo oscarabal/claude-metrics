@@ -55,7 +55,7 @@ La fila Por hora, plegada por defecto, se ve aquí desplegada.
 
 ## Mejoras
 
-La fila «Mejoras» resume el informe de mejoras: lo que puedes cambiar (reglas en CLAUDE.md, modelo o *effort* por defecto, modelos fijados en comandos, reglas `allow` de permisos, hábitos al escribir prompts) para gastar menos y que el agente falle menos. Sirve también para comprobar, semanas después, si un cambio funcionó. El informe completo se descarga con el enlace **Informe de mejoras (.md)** de arriba a la derecha, con el rango y los proyectos elegidos, o pulsando las cifras de esta fila.
+La fila «Mejoras» resume el informe de mejoras: lo que puedes cambiar (reglas en CLAUDE.md, modelo o *effort* por defecto, modelos fijados en comandos, reglas `allow` de permisos, hábitos al escribir prompts) para gastar menos y que el agente falle menos. Sirve también para comprobar, semanas después, si un cambio funcionó. El informe completo se abre en una pestaña nueva con el enlace **Informe de mejoras** de arriba a la derecha, con el rango y los proyectos elegidos, o pulsando las cifras de esta fila. En esa página las sesiones de ejemplo enlazan con su detalle, y los botones de arriba descargan el informe (.md), copian su Markdown u ocultan los nombres de proyecto antes de compartirlo.
 
 | Panel | Tipo | Qué muestra | Qué aporta |
 | --- | --- | --- | --- |
