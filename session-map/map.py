@@ -5,10 +5,13 @@ recent sessions with the time of their last activity (the dashboard keeps those 
 It reads the conversation files read-only, in the background, and keeps only metadata (see index.py).
 """
 import calendar
+import json
 import os
 import re
+import threading
 import time
 import urllib.parse
+from collections import Counter
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
 import index
@@ -255,6 +258,63 @@ def list_range(query):
     return start, end, "del %s al %s (UTC)" % (day_of(start), day_of(end))
 
 
+# Reports already built, so the Grafana panels that read /coach/... (several per dashboard load) share one build
+_REPORTS, _REPORTS_LOCK = {}, threading.Lock()
+REPORT_CACHE_SECONDS = 120
+
+
+def report_for(query):
+    """The improvement report for a query string (window or from/to, project, anon), cached for two minutes."""
+    since, until, label = list_range(query)
+    label = label.replace("de los ", "").replace("de todo el historial", "todo el historial")
+    projects = {p for p in re.split(r"[,|]", ",".join(query.get("project", []))) if p and p not in (".*", "All", "$__all")}
+    anon = query.get("anon", ["0"])[0] == "1"
+    key = (since // 60000, until // 60000, tuple(sorted(projects)), anon)
+    now = time.time()
+    with _REPORTS_LOCK:
+        hit = _REPORTS.get(key)
+        if hit and now - hit[0] < REPORT_CACHE_SECONDS:
+            return hit[1]
+    data = coach_report.build(index.INDEX, since, until, label, projects or None, anon)
+    with _REPORTS_LOCK:
+        _REPORTS[key] = (now, data)
+        for k in [k for k, (t, _d) in _REPORTS.items() if now - t >= REPORT_CACHE_SECONDS]:
+            del _REPORTS[k]
+    return data
+
+
+def _plain(text):
+    """Finding text without Markdown marks, for Grafana tables."""
+    return re.sub(r"[`*]", "", text or "")
+
+
+def coach_rows(name, r):
+    """Rows of one part of the report as a JSON array, for Grafana's Infinity datasource. None if unknown."""
+    findings = r["findings"]
+    if name == "summary":
+        sev = Counter(f["severity"] for f in findings)
+        return [{"hallazgos": len(findings), "alta": sev["alta"], "media": sev["media"], "baja": sev["baja"],
+                 "impacto_usd": round(sum(f.get("impact_usd") or 0 for f in findings), 2),
+                 "desde": r["period"]["from"], "hasta": r["period"]["to"]}]
+    if name == "findings":
+        return [{"id": f["id"], "severidad": f["severity"], "regla": "%s %s" % (f["detector"], coach_report.RULES.get(f["detector"], "")),
+                 "hallazgo": _plain(f["title"]), "impacto_usd": f.get("impact_usd"), "casos": f.get("impact_count"),
+                 "evidencia": _plain(f["evidence"]), "recomendacion": _plain(f["recommendation"])} for f in findings]
+    if name == "rules":
+        rows = {}
+        for f in findings:
+            row = rows.setdefault(f["detector"], {"regla": "%s %s" % (f["detector"], coach_report.RULES.get(f["detector"], "")),
+                                                  "hallazgos": 0, "alta": 0, "impacto_usd": 0.0})
+            row["hallazgos"] += 1
+            row["alta"] += f["severity"] == "alta"
+            row["impacto_usd"] = round(row["impacto_usd"] + (f.get("impact_usd") or 0), 2)
+        return sorted(rows.values(), key=lambda x: (-x["impacto_usd"], -x["hallazgos"]))
+    if name == "tool_bytes":
+        return [{"herramienta": t["tool"], "resultados": t["results"], "bytes_medios": t["avg_bytes"], "bytes_max": t["max_bytes"],
+                 "bytes_total": t["total_bytes"], "tokens_aprox": t["total_bytes"] // 4} for t in r["tables"]["events"]["tool_bytes"]]
+    return None
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status, body, ctype):
         data = body.encode()
@@ -274,6 +334,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200 if data else 404, page, "text/html; charset=utf-8")
             if parsed.path.rstrip("/") in ("/report.md", "/report.json"):
                 return self._report(parsed)
+            if parsed.path.startswith("/coach/"):
+                rows = coach_rows(parsed.path[len("/coach/"):].strip("/"), report_for(urllib.parse.parse_qs(parsed.query)))
+                if rows is None:
+                    return self._send(404, "[]", "application/json")
+                return self._send(200, json.dumps(rows, ensure_ascii=False), "application/json; charset=utf-8")
             if parsed.path.rstrip("/") == "/sessions":
                 query = urllib.parse.parse_qs(parsed.query)
                 since, until, label = list_range(query)
@@ -288,12 +353,7 @@ class Handler(BaseHTTPRequestHandler):
     def _report(self, parsed):
         """The improvement report for the dashboard's time range and projects, to download and share with an AI."""
         as_json = parsed.path.rstrip("/").endswith(".json")
-        query = urllib.parse.parse_qs(parsed.query)
-        since, until, label = list_range(query)
-        label = label.replace("de los ", "").replace("de todo el historial", "todo el historial")
-        projects = {p for p in re.split(r"[,|]", ",".join(query.get("project", []))) if p and p not in (".*", "All", "$__all")}
-        anon = query.get("anon", ["0"])[0] == "1"
-        data = coach_report.build(index.INDEX, since, until, label, projects or None, anon)
+        data = report_for(urllib.parse.parse_qs(parsed.query))
         body = (coach_render.render_json(data) if as_json else coach_render.render(data)).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8" if as_json else "text/markdown; charset=utf-8")

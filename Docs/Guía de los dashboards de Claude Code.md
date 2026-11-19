@@ -59,15 +59,16 @@ La fila «Mejoras» resume el informe de mejoras: lo que puedes cambiar (reglas 
 
 | Panel | Tipo | Qué muestra | Qué aporta |
 | --- | --- | --- | --- |
-| Mejoras detectadas (30 días) | Cifra | Hallazgos del informe de los últimos 30 días, de todos los proyectos. | Cuánto hay por mejorar. No sigue el selector de tiempo: se recalcula cada 10 minutos para 30 días. |
-| Impacto estimado (30 días) | Cifra | Suma del impacto en dólares de esos hallazgos, a precio de API. | Un orden de magnitud; con suscripción es coste equivalente. |
+| Mejoras detectadas | Cifra | Hallazgos del informe en el rango y los proyectos elegidos. | Cuánto hay por mejorar. Es el mismo cálculo que el informe que se descarga; pulsa la cifra para abrirlo. |
+| Impacto estimado | Cifra | Suma del impacto en dólares de esos hallazgos, a precio de API. | Un orden de magnitud; con suscripción es coste equivalente. |
 | Errores evitables de herramientas | Cifra | Parte de las llamadas que fallaron en el rango, sin rechazos (también de planes), bloqueos, interrupciones ni comandos que terminan con error. | La salud general del uso de herramientas. |
 | Compactaciones e interrupciones | Cifra doble | Compactaciones de contexto y respuestas interrumpidas en el rango. | Sesiones demasiado largas y prompts que arrancan mal. |
-| Hallazgos por regla (30 días) | Tabla | Hallazgos, cuántos de severidad alta e impacto, por regla. | Qué tipo de mejora pesa más. |
+| Hallazgos | Tabla | Cada mejora detectada en el rango y los proyectos elegidos: severidad, regla, qué pasa, impacto, casos, recomendación y evidencia. | Qué cambiar, sin salir del dashboard. Los textos largos se leen pasando el ratón por la celda; las sesiones de ejemplo están en el informe. |
+| Hallazgos por regla | Tabla | Hallazgos, cuántos de severidad alta e impacto, por regla, en el rango y los proyectos elegidos. | Qué tipo de mejora pesa más. |
 | Errores evitables por herramienta y modelo | Tabla | Llamadas, errores y tasa de cada herramienta y modelo con algún fallo; naranja desde el 5 %, rojo desde el 15 %. | Dónde compensa una regla en CLAUDE.md o usar otro modelo. |
 | Coste por mensaje de cada modelo, por semana | Líneas | Coste medio por mensaje de cada modelo, las últimas 13 semanas. | Comprueba el efecto de cambiar de modelo o de *effort*. |
 | Errores evitables por herramienta, por semana | Líneas | Tasa de error semanal de las cinco herramientas con más fallos evitables. | Comprueba si una regla nueva reduce los fallos. |
-| Bytes devueltos al contexto por herramienta | Tabla | Llamadas, total y media de lo que devuelve cada herramienta en el rango, según la telemetría. | Las herramientas que más llenan el contexto y provocan compactaciones. |
+| Bytes devueltos al contexto por herramienta | Tabla | Llamadas, total, media, máximo y tokens aproximados de lo que devuelve cada herramienta en el rango y los proyectos elegidos, según la telemetría. | Las herramientas que más llenan el contexto y provocan compactaciones. |
 
 ## Páginas de sesión
 

@@ -65,6 +65,8 @@ services:
     image: grafana/grafana:latest
     environment:
       - GF_SECURITY_ADMIN_USER=admin
+      # Infinity: lets the «Mejoras» panels read the improvement report from session-map with the dashboard's filters
+      - GF_PLUGINS_PREINSTALL_SYNC=yesoreyeram-infinity-datasource
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?copia .env.example a .env y define una contraseña}
     volumes:
       - ./grafana-datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro

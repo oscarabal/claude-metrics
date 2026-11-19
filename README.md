@@ -69,7 +69,7 @@ On Windows, `Iniciar-metricas.bat` starts Docker Desktop if needed, runs `docker
 
 ### The dashboard
 
-The Prometheus (uid `prometheus`) and Loki (uid `loki`) datasources and the **Claude Code** dashboard are provisioned automatically: there is nothing to import. Grafana reads `Grafana/claude-code-dashboard.json` when it starts, so after editing it run `docker compose restart grafana`. Because it is provisioned it cannot be saved from the interface: changes are made in the JSON.
+The Prometheus (uid `prometheus`), Loki (uid `loki`) and Coach (uid `coach`, Infinity, reads the improvement report from `session-map`) datasources and the **Claude Code** dashboard are provisioned automatically: there is nothing to import. Grafana reads `Grafana/claude-code-dashboard.json` when it starts, so after editing it run `docker compose restart grafana`. Because it is provisioned it cannot be saved from the interface: changes are made in the JSON.
 
 If you come from an earlier version where you imported the dashboards by hand, run `docker compose up -d`: the provisioned dashboard takes over from the imported one (same uid `claude-code`) and the Prometheus datasource is recreated with its fixed uid. The three old dashboards (Uso y coste, Eventos and Sesiones) stay in your Grafana until you delete them.
 
@@ -161,7 +161,7 @@ Three ways to get it, with the same content:
 
 **History.** Loki keeps 30 days and `session-map` lost the cost of old sessions on restart. A small SQLite in the `coach-data` volume now keeps each request (cost, model, query source, effort, session) and each tool event (tool, session, bytes returned, permission decision, never its parameters), so history grows from the day it is enabled. Section 6 of the report (effort, call origin, tool output size, permission decisions) is built from these rows, with the same period and project filter as the rest of the report.
 
-**The dashboard's «Mejoras» row.** Findings and impact (last 30 days; clicking opens the report), avoidable errors, compactions and interruptions, findings per rule, errors per tool and model, the weekly cost per message of each model and weekly errors per tool, and the bytes each tool returns to the context. Everything is computed in the background; a scrape only copies the cached result.
+**The dashboard's «Mejoras» row.** It follows the time picker and the project selector. The number of findings, their impact, the findings table (rule, severity, impact, evidence and recommendation), the findings per rule and the bytes each tool returns to the context are read from `session-map` (`/coach/summary`, `/coach/findings`, `/coach/rules`, `/coach/tool_bytes`) through the Infinity datasource, so they are the same calculation as the downloaded report; a report already built for the same range and projects is reused for two minutes. Avoidable errors, compactions and interruptions, errors per tool and model, and the weekly trends come from Prometheus. Grafana installs the Infinity plugin when it starts (`GF_PLUGINS_PREINSTALL_SYNC`), so the first start after this change needs internet access.
 
 ## Available data
 

@@ -69,7 +69,7 @@ En Windows, `Iniciar-metricas.bat` inicia Docker Desktop si hace falta, ejecuta 
 
 ### El dashboard
 
-Los datasources de Prometheus (uid `prometheus`) y Loki (uid `loki`) y el dashboard **Claude Code** se provisionan solos: no hay que importar nada. Grafana lee `Grafana/claude-code-dashboard.json` al arrancar, así que tras editarlo hay que ejecutar `docker compose restart grafana`. Como está provisionado, no se puede guardar desde la interfaz: los cambios se hacen en el JSON.
+Los datasources de Prometheus (uid `prometheus`), Loki (uid `loki`) y Coach (uid `coach`, Infinity, que lee el informe de mejoras de `session-map`) y el dashboard **Claude Code** se provisionan solos: no hay que importar nada. Grafana lee `Grafana/claude-code-dashboard.json` al arrancar, así que tras editarlo hay que ejecutar `docker compose restart grafana`. Como está provisionado, no se puede guardar desde la interfaz: los cambios se hacen en el JSON.
 
 Si venías de una versión anterior en la que importabas los dashboards a mano, ejecuta `docker compose up -d`: el dashboard provisionado toma el relevo del importado (mismo uid `claude-code`) y el datasource Prometheus se recrea con su uid fijo. Los tres dashboards antiguos (Uso y coste, Eventos y Sesiones) siguen en tu Grafana hasta que los borres.
 
@@ -180,7 +180,7 @@ Tres formas de obtenerlo, con el mismo contenido:
 
 **Historial.** Loki guarda 30 días y `session-map` perdía al reiniciarse el coste de las sesiones antiguas. Ahora un SQLite pequeño en el volumen `coach-data` guarda cada petición (coste, modelo, origen, effort y sesión) y cada evento de herramienta (herramienta, sesión, bytes devueltos y decisión de permiso, nunca sus parámetros), así que el historial crece desde el día en que se activa. La sección 6 del informe (effort, origen de las llamadas, tamaño de lo que devuelven las herramientas y decisiones de permiso) sale de esas filas, con el mismo periodo y filtro de proyecto que el resto del informe.
 
-**Fila «Mejoras» del dashboard.** Mejoras detectadas e impacto (últimos 30 días; pulsarlas abre el informe), errores evitables, compactaciones e interrupciones, hallazgos por regla, errores por herramienta y modelo, el coste por mensaje de cada modelo y los errores por herramienta semana a semana, y los bytes que cada herramienta devuelve al contexto. Todo se calcula en segundo plano: el scrape solo copia lo ya calculado.
+**Fila «Mejoras» del dashboard.** Sigue el selector de tiempo y el de proyecto. Las mejoras detectadas, su impacto, la tabla de hallazgos (regla, severidad, impacto, evidencia y recomendación), los hallazgos por regla y los bytes que cada herramienta devuelve al contexto se leen de `session-map` (`/coach/summary`, `/coach/findings`, `/coach/rules`, `/coach/tool_bytes`) con el datasource Infinity, así que son el mismo cálculo que el informe que se descarga; un informe ya calculado para el mismo rango y proyectos se reutiliza durante dos minutos. Los errores evitables, las compactaciones e interrupciones, los errores por herramienta y modelo y las tendencias semanales salen de Prometheus. Grafana instala el plugin Infinity al arrancar (`GF_PLUGINS_PREINSTALL_SYNC`), así que el primer arranque tras este cambio necesita acceso a internet.
 
 ## Datos disponibles
 
