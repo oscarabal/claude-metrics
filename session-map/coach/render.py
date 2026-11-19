@@ -179,8 +179,15 @@ def render(r):
     if not e["days_with_events"]:
         add("_Sin eventos de telemetría en el periodo (Loki guarda 30 días y el almacén propio empieza el día que se activa)._")
     else:
-        add("_Datos de %d días con eventos; el almacén guarda desde %s%s._" % (
+        add("_Mismo periodo que el resto del informe%s. Hay eventos en %d días; la telemetría empieza el %s%s._" % (
+            " y solo las sesiones de los proyectos elegidos" if e.get("filter") == "project"
+            else "; sin filtro de proyecto, incluye también sesiones cuyas conversaciones no están en esta máquina",
             e["days_with_events"], e["first_day"], "" if e["persistent_store"] else " (sin volumen: se pierde al reiniciar)"))
+        add("")
+        add("_Peticiones con eventos: %d, por %s. Las secciones 1 a 5 cuentan %s: solo los mensajes que quedan en las conversaciones. "
+            "La diferencia son llamadas de fondo (sugerencias, títulos, compactación) y llamadas hechas dentro de herramientas, "
+            "que no dejan mensaje en la conversación. Los modelos sin ajuste de effort (como Haiku) salen con «—»._" % (
+                e.get("requests", 0), usd(e.get("cost_usd", 0)), usd(s["cost_usd"])))
         add("")
         add(table(("Modelo", "Effort", "Peticiones", "Coste", "Coste/petición", "Salida/petición"),
                   [(x["model"], x["effort"], x["requests"], usd(x["cost_usd"]), usd4(x["cost_per_request"]), tok(x["output_per_request"])) for x in e["effort"][:12]]))

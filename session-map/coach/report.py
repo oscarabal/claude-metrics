@@ -1,6 +1,6 @@
 """Usage analysis for the improvement report (Claude Code).
 
-`build()` reads session-map's index, the store (request costs and daily Loki aggregates) and the
+`build()` reads session-map's index (with the requests and tool events it reads from Loki) and the
 inventory of commands and skills, and returns a plain dict. `/report.md`, `/report.json`, the
 command line, the Grafana series and the MCP endpoint all start from this dict.
 
@@ -75,7 +75,13 @@ def snapshot(ix):
                 "turns": dict(s.get("turns", {})), "interrupts": list(s.get("interrupts", [])),
             })
         costs = dict(ix.costs)
-    return sessions, costs
+        # one row per request and per tool event seen in the telemetry, with its session, for section 6
+        requests = []
+        for rid, (_pid, model, source, cost) in ix.requests.items():
+            sid, effort, out = ix.request_meta.get(rid, (None, "", 0))
+            requests.append((ix.request_ts.get(rid, 0), sid, model, effort, source, cost, out))
+        tool_events = [(kind,) + tuple(v) for (_tid, kind), v in ix.tool_events.items()]
+    return sessions, costs, {"requests": requests, "tools": tool_events}
 
 
 class Period:
@@ -152,7 +158,7 @@ class Period:
 def build(ix, since, until, label, projects=None, anon=False, now=None, data=None):
     """The report as a dict. `since`/`until` in Unix milliseconds; `projects` a set of names or None."""
     started = time.time()
-    sessions, costs = data or snapshot(ix)
+    sessions, costs, telemetry = data or snapshot(ix)
     keep = (lambda p: p in projects) if projects else (lambda p: True)
     first = min((m[0] for s in sessions for m in s["msgs"] if m[0]), default=since)
     since = max(since, first - first % 86400000)
@@ -168,7 +174,7 @@ def build(ix, since, until, label, projects=None, anon=False, now=None, data=Non
 
     summary = cur.summary()
     st = coach_store.get()
-    events = loki_tables(st, since, until)
+    events = telemetry_tables(telemetry, cur, since, until, bool(projects), st)
     tables = {
         "agents": origins_table(cur),
         "models": models_table(cur),
@@ -397,36 +403,52 @@ def model_health(p):
     return out
 
 
-def loki_tables(st, since, until):
-    """Effort, query sources, bytes returned by tools and permission decisions, from the stored daily aggregates."""
-    first, last = _day(since), _day(until)
-    by = lambda kind: st.daily(kind, first, last)
-    effort = defaultdict(Counter)
-    for _d, model, eff, src, v in by("cost"):
-        effort[(model, eff or "—")]["cost"] += v
-    for _d, model, eff, src, v in by("requests"):
-        effort[(model, eff or "—")]["requests"] += v
-    for _d, model, eff, src, v in by("output_tokens"):
-        effort[(model, eff or "—")]["output"] += v
-    sources = defaultdict(Counter)
-    for _d, _model, _eff, src, v in by("cost"):
-        sources[src or "—"]["cost"] += v
-    for _d, _model, _eff, src, v in by("requests"):
-        sources[src or "—"]["requests"] += v
+def telemetry_tables(telemetry, cur, since, until, by_project, st):
+    """Effort, query sources, bytes returned by tools and permission decisions, from each request and tool event
+    in the telemetry, with the same filter as the rest of the report: the period to the millisecond and, when a
+    project is chosen, only the sessions of that project. Without a project filter it also counts the calls of
+    sessions whose conversation files are not here (another machine, deleted files)."""
+    ids = {s["id"] for s in cur.sessions}
+    keep = (lambda sid: sid in ids) if by_project else (lambda sid: True)
+    inside = lambda t: since <= (t or 0) <= until
+    effort, sources = defaultdict(Counter), defaultdict(Counter)
+    days, first, without_meta = set(), None, 0
+    for ts, sid, model, eff, src, cost, out in telemetry["requests"]:
+        first = ts if ts and (first is None or ts < first) else first
+        if not inside(ts):
+            continue
+        if sid is None:
+            without_meta += 1
+            if by_project:
+                continue
+        elif not keep(sid):
+            continue
+        days.add(_day(ts))
+        e = effort[(model, eff or "—")]
+        e["cost"] += cost or 0
+        e["requests"] += 1
+        e["output"] += out or 0
+        o = sources[src or "—"]
+        o["cost"] += cost or 0
+        o["requests"] += 1
     total = sum(r["cost"] for r in sources.values())
-    tools = defaultdict(Counter)
-    for _d, tool, _b, _c, v in by("tool_results"):
-        tools[tool]["results"] += v
-    for _d, tool, _b, _c, v in by("tool_bytes"):
-        tools[tool]["bytes"] += v
-    for _d, tool, _b, _c, v in by("tool_bytes_max"):
-        tools[tool]["max"] = max(tools[tool]["max"], v)
-    decisions = Counter()
-    for _d, tool, dec, src, v in by("decisions"):
-        decisions[(tool, dec, src)] += v
-    days = {d for kind in ("cost", "tool_results", "decisions") for d, *_ in by(kind)}
+    tools, decisions = defaultdict(Counter), Counter()
+    for kind, ts, sid, tool, size, dec, src in telemetry["tools"]:
+        first = ts if ts and (first is None or ts < first) else first
+        if not inside(ts) or not keep(sid):
+            continue
+        days.add(_day(ts))
+        if kind == "result":
+            t = tools[tool]
+            t["results"] += 1
+            t["bytes"] += size
+            t["max"] = max(t["max"], size)
+        else:
+            decisions[(tool, dec, src)] += 1
     return {
-        "first_day": st.first_day(), "days_with_events": len(days), "persistent_store": st.persistent,
+        "first_day": _day(first) if first else None, "days_with_events": len(days), "persistent_store": st.persistent,
+        "filter": "project" if by_project else "all", "requests": sum(r["requests"] for r in sources.values()),
+        "cost_usd": round(total, 4), "requests_without_session": without_meta,
         "effort": [{"model": m, "effort": e, "cost_usd": round(r["cost"], 4), "requests": int(r["requests"]),
                     "cost_per_request": round(_pct(r["cost"], r["requests"]), 4), "output_per_request": round(_pct(r["output"], r["requests"]))}
                    for (m, e), r in sorted(effort.items(), key=lambda x: -x[1]["cost"])],

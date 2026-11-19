@@ -178,7 +178,7 @@ Tres formas de obtenerlo, con el mismo contenido:
 
 **De dónde sale.** De las conversaciones (cada llamada a herramienta con su resultado, el turno, interrupciones y rechazos; el texto de un error se lee para clasificarlo y se descarta), de los eventos de Loki (*effort*, origen de cada petición, bytes devueltos por herramienta, decisiones de permisos) y de `~/.claude/commands` y `~/.claude/skills`, montadas en solo lectura.
 
-**Historial.** Loki guarda 30 días y `session-map` perdía al reiniciarse el coste de las sesiones antiguas. Ahora un SQLite pequeño en el volumen `coach-data` guarda el coste de cada petición y los agregados diarios de Loki, así que el historial crece desde el día en que se activa.
+**Historial.** Loki guarda 30 días y `session-map` perdía al reiniciarse el coste de las sesiones antiguas. Ahora un SQLite pequeño en el volumen `coach-data` guarda cada petición (coste, modelo, origen, effort y sesión) y cada evento de herramienta (herramienta, sesión, bytes devueltos y decisión de permiso, nunca sus parámetros), así que el historial crece desde el día en que se activa. La sección 6 del informe (effort, origen de las llamadas, tamaño de lo que devuelven las herramientas y decisiones de permiso) sale de esas filas, con el mismo periodo y filtro de proyecto que el resto del informe.
 
 **Fila «Mejoras» del dashboard.** Mejoras detectadas e impacto (últimos 30 días; pulsarlas abre el informe), errores evitables, compactaciones e interrupciones, hallazgos por regla, errores por herramienta y modelo, el coste por mensaje de cada modelo y los errores por herramienta semana a semana, y los bytes que cada herramienta devuelve al contexto. Todo se calcula en segundo plano: el scrape solo copia lo ya calculado.
 

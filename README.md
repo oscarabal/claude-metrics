@@ -159,7 +159,7 @@ Three ways to get it, with the same content:
 
 **Sources.** The conversation files (each tool call with its result, the turn, interruptions and rejections; an error's text is read to classify it and then discarded), Loki's events (*effort*, origin of each request, bytes returned by each tool, permission decisions) and `~/.claude/commands` and `~/.claude/skills`, mounted read-only.
 
-**History.** Loki keeps 30 days and `session-map` lost the cost of old sessions on restart. A small SQLite in the `coach-data` volume now keeps the cost of each request and Loki's daily aggregates, so history grows from the day it is enabled.
+**History.** Loki keeps 30 days and `session-map` lost the cost of old sessions on restart. A small SQLite in the `coach-data` volume now keeps each request (cost, model, query source, effort, session) and each tool event (tool, session, bytes returned, permission decision, never its parameters), so history grows from the day it is enabled. Section 6 of the report (effort, call origin, tool output size, permission decisions) is built from these rows, with the same period and project filter as the rest of the report.
 
 **The dashboard's «Mejoras» row.** Findings and impact (last 30 days; clicking opens the report), avoidable errors, compactions and interruptions, findings per rule, errors per tool and model, the weekly cost per message of each model and weekly errors per tool, and the bytes each tool returns to the context. Everything is computed in the background; a scrape only copies the cached result.
 

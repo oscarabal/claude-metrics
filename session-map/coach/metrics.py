@@ -93,7 +93,7 @@ def _round(ix):
 
 
 def _series(data, st):
-    sessions, costs = data
+    sessions, costs = data[:2]
     out, days = [], set()
     add = out.append
     week_from = (time.time() - WEEKS * 7 * 86400) * 1000

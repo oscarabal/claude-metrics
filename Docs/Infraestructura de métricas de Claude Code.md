@@ -144,7 +144,7 @@ Se publican métricas de contexto de las 30 sesiones más recientes (`claude_con
 | Fichero | Qué hace |
 | --- | --- |
 | `coach/errors.py` | Reduce el texto de error de cada resultado de herramienta a una clase; separa los rechazos de planes (`ExitPlanMode`) y del usuario de los fallos evitables |
-| `coach/store.py` | SQLite en el volumen `coach-data`: coste de cada petición y agregados diarios de Loki, para no depender de sus 30 días ni perder el coste al reiniciar |
+| `coach/store.py` | SQLite en el volumen `coach-data`: cada petición (coste, modelo, origen, effort, sesión y tokens de salida), cada evento de herramienta (herramienta, sesión, bytes devueltos y decisión de permiso, nunca sus parámetros) y agregados diarios de Loki para las series de Grafana, para no depender de sus 30 días ni perder el coste al reiniciar. La sección 6 del informe sale de las filas por petición y por evento, así que usa el mismo periodo y el mismo filtro de proyecto que el resto |
 | `coach/loki.py` | Siete consultas métricas diarias a Loki: coste, peticiones y salida por modelo, *effort* y `query_source`; resultados y bytes por herramienta; decisiones de permisos |
 | `coach/inventory.py` | Comandos y skills de `~/.claude/commands` y `~/.claude/skills`: nombre, modelo fijado y fecha |
 | `coach/report.py` | `build()`: periodo y periodo anterior, tablas y 16 reglas (D1-D10 compartidas con OpenCode, C1-C6 propias) |

@@ -126,7 +126,12 @@ class Index:
         self.costs = {}          # request id -> USD, from Loki
         self.requests = {}       # request id -> (prompt id, model, query source, USD), from Loki
         self.request_ts = {}     # request id -> ms, from Loki, so the coach's store can date each cost
+        self.request_meta = {}   # request id -> (session id, effort, output tokens), from Loki, for the report's filters
+        # (tool_use id, "result" or "decision") -> (ms, session id, tool, bytes returned, decision, decision source);
+        # never the tool parameters, which the events also carry
+        self.tool_events = {}
         self.loki_ns = 0
+        self.tool_ns = 0
         self.done = False
         self.loki_ok = False
 
@@ -293,10 +298,42 @@ class Index:
                         self.requests[meta["request_id"]] = (meta.get("prompt_id", ""), meta.get("model", "unknown"),
                                                              meta.get("query_source", "unknown"), float(meta["cost_usd"]))
                         self.request_ts[meta["request_id"]] = int(ts) // 1_000_000
+                        self.request_meta[meta["request_id"]] = (meta.get("session_id", ""), meta.get("effort", ""),
+                                                                 int(float(meta.get("output_tokens") or 0)))
                     except (KeyError, ValueError):
                         pass
             self.loki_ns = max(self.loki_ns, last)
             self.loki_ok = True
+            if count < 5000:
+                return
+            start = last + 1
+
+    def scan_tool_events(self):
+        """tool_result and tool_decision events since the last read: tool, session, bytes and decision only."""
+        now = int(time.time() * 1e9)
+        start = self.tool_ns + 1 if self.tool_ns else now - 30 * 86400 * 10 ** 9
+        while True:
+            url = LOKI_URL + "/loki/api/v1/query_range?" + urllib.parse.urlencode({
+                "query": '{service_name=~".+"} | event_name=~"tool_result|tool_decision"', "limit": 5000,
+                "start": start, "end": now, "direction": "forward"})
+            with urllib.request.urlopen(url, timeout=20) as r:
+                streams = json.load(r)["data"]["result"]
+            count, last = 0, start
+            for stream in streams:
+                meta = stream.get("stream", {})
+                for ts, _line in stream.get("values", []):
+                    count += 1
+                    last = max(last, int(ts))
+                    kind = "result" if meta.get("event_name") == "tool_result" else "decision"
+                    key = (meta.get("tool_use_id") or "%s:%s" % (meta.get("session_id", ""), ts), kind)
+                    try:
+                        size = int(float(meta.get("tool_result_size_bytes") or 0))
+                    except ValueError:
+                        size = 0
+                    with self.lock:
+                        self.tool_events[key] = (int(ts) // 1_000_000, meta.get("session_id", ""), meta.get("tool_name", "?"),
+                                                 size, meta.get("decision", ""), meta.get("source", ""))
+            self.tool_ns = max(self.tool_ns, last)
             if count < 5000:
                 return
             start = last + 1
@@ -311,6 +348,10 @@ class Index:
             if time.time() - costs_at > 60:
                 try:
                     self.scan_costs()
+                except Exception:
+                    pass
+                try:
+                    self.scan_tool_events()
                 except Exception:
                     pass
                 costs_at = time.time()
