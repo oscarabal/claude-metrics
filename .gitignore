@@ -3,6 +3,18 @@ Docs/*
 !Docs/Guía de los dashboards de Claude Code.md
 !Docs/Infraestructura de métricas de Claude Code.md
 
+# Documentación de arquitectura (arc42): el sistema de ficheros no distingue
+# mayúsculas, así que "Docs/*" también matchea "docs/architecture/"
+!docs/
+!docs/architecture/
+!docs/architecture/**
+# ...salvo el snapshot HTML generado, que no se versiona
+docs/architecture/arc42-snapshot.html
+docs/arc42-snapshot.html
+
+# Dependencias instaladas del generador de snapshot de la skill architecture-docs
+.claude/skills/architecture-docs/snapshot/node_modules/
+
 # Secretos y accesos directos locales
 .env
 *.lnk
